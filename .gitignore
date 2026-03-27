@@ -1,0 +1,14 @@
+
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
+
+# env files
+.env 
+#.env → ignore ไฟล์หลัก
+.env.*
+#.env.* → ครอบหมด เช่น: .env.sit / .env.dev /.env.prod
