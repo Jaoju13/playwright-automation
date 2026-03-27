@@ -370,7 +370,7 @@ EX.
 
             // Register Success
             const registersuccesspage = new RegisterSuccessPage(page);
-            await expect(registersuccesspage.Heading).toBeVisible();
+            await expect(registersuccesspage.LoginBtn).toBeVisible();
             await expect(registersuccesspage.Heading).toHaveText('ลงทะเบียนสำเร็จ');
             await registersuccesspage.SubmitBtn();
 
