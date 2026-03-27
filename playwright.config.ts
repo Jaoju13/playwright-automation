@@ -32,10 +32,10 @@ export default defineConfig({
    Opt out of parallel tests on CI. */
 
   // 🔧 แก้: เปิด parallel ใน CI ด้วย (จากเดิม 1 worker → ช้ามาก)
-  workers: process.env.CI ? 4 : undefined, 
+  workers: process.env.CI ? 2 : undefined, 
   /*จำนวนเครื่องรัน test : CI ทีละ 1, เครื่องเราพร้อมกันได้ เช่น A หยิบไฟล์เคส 1-2 B หยิบ 3-4 แต่ CI จะเป็น A 1-4 / undefined พร้อมๆกันไปเลอ ให้ Playwright จะใช้จำนวน CPU core อัตโนมัติ
   แปลว่าถ้าไฟล์ 2 กับ 3 ต่อกันแต่คนงานทำไม่พร้อมกันก็พังได้
-      → ถ้า process.env.CI เป็นจริง → ใช้ workers = 4
+      → ถ้า process.env.CI เป็นจริง → ใช้ workers = 2
       → ถ้าไม่ใช่ (รันบนเครื่องเรา) → ใช้ undefined
   Reporter to use. See https://playwright.dev/docs/test-reporters */
 
@@ -51,7 +51,16 @@ export default defineConfig({
     trace: 'on-first-retry', 
     /*trace = การอัดวิดีโอ + step + network + action ของ test 
     จะเก็บ trace ก็ต่อเมื่อ test fail แล้ว retry รอบแรก */
+
+    // 🆕 เพิ่ม: กัน test ค้าง (action ต่าง ๆ เช่น click, fill)
+    actionTimeout: 10000,
+
+    // 🆕 เพิ่ม: กันหน้าโหลดช้าเกินไป
+    navigationTimeout: 30000,
   },
+
+  // 🆕 เพิ่ม: timeout รวมต่อ 1 test (กันเคสค้างยาว)
+  timeout: 60000,
 
   /* Configure projects for major browsers เป็นของชีเอง ไม่ใช่ของที่มีในเครื่องเรา*/
   projects: [

@@ -1,29 +1,69 @@
-name: Playwright Tests 
+name: Playwright Tests  #ชื่อ workflow จะไปโชว์ในแท็บ Actions
+
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master ]  #push เข้า main หรือ master → รัน
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, master ]  #เปิด PR เข้า main/master → รัน
+
 jobs:
-  test:
-    timeout-minutes: 60
+  test:  #ตั้งชื่อ job ว่า test
+
+    timeout-minutes: 60  #ถ้ารันเกิน 60 นาที → ตัดทิ้ง (กัน CI ค้าง)
+
     env:
-      BASE_URL: https://st.rvpdplus.com   #เอาไว้กันเวลาขึ้น env ต่างกันให้มันมาแก้ค่าตรงนี้ให้
-    runs-on: ubuntu-latest
+      BASE_URL: https://st.rvpdplus.com   
+      #เอาไว้กำหนด environment variable ให้ test ใช้
+      #เช่น baseURL ใน playwright.config.ts จะดึงค่านี้ไปใช้
+
+    runs-on: ubuntu-latest  
+    #เครื่องที่ใช้รัน ใช้ Linux server ของ GitHub (ฟรี + เร็ว)
+
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
+
+    - uses: actions/checkout@v4  
+      #ดึงโค้ด (clone repo) มาในเครื่อง CI เพื่อให้ step ถัดไปใช้ไฟล์ได้
+
+    - uses: actions/setup-node@v4  
       with:
-        node-version: lts/*
-    - name: Install dependencies
-      run: npm ci
-    - name: Install Playwright Browsers
-      run: npx playwright install --with-deps
-    - name: Run Playwright tests
-      run: npx playwright test
-    - uses: actions/upload-artifact@v4
-      if: ${{ !cancelled() }}
+        node-version: lts/*  
+      #ติดตั้ง Node.js เวอร์ชัน LTS (เวอร์ชันเสถียรล่าสุด)
+
+    - name: Install dependencies  
+      run: npm ci  
+      #ติดตั้ง dependencies จาก package-lock.json แบบ clean
+      #เร็วกว่่า npm install และเหมาะกับ CI
+
+    # 🆕 เพิ่ม: cache browser → รอบถัดไปเร็วขึ้นมาก
+    - name: Cache Playwright Browsers  
+      uses: actions/cache@v4  
       with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+        path: ~/.cache/ms-playwright  
+        # path ที่ Playwright เก็บ browser ไว้ (Chromium / Firefox / WebKit)
+        key: ${{ runner.os }}-playwright  
+        # key สำหรับ cache → ถ้า key เหมือนเดิม จะ reuse cache ได้
+
+    - name: Install Playwright Browsers  
+      # 🔧 แก้: จาก --with-deps → chromium อย่างเดียว (เร็วขึ้น)
+      run: npx playwright install chromium  
+      #ติดตั้ง browser ที่ใช้รัน test
+      #ใน config ใช้ chromium → ไม่ต้องโหลดตัวอื่น
+
+    - name: Run Playwright tests  
+      run: npx playwright test  
+      #สั่งรัน test ทั้งหมดในโฟลเดอร์ tests/
+      #จะใช้ config จาก playwright.config.ts
+
+    - uses: actions/upload-artifact@v4  
+      if: ${{ !cancelled() }}  
+      #ถ้า job ไม่ถูก cancel → อัปโหลด report
+
+      with:
+        name: playwright-report  
+        #ชื่อ artifact ที่จะไปดูใน GitHub
+
+        path: playwright-report/  
+        #โฟลเดอร์ report ที่ Playwright generate
+
+        retention-days: 30  
+        #เก็บ report ไว้ 30 วัน
