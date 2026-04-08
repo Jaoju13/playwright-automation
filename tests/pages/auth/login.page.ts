@@ -54,6 +54,38 @@ export class LoginPage {
       }
 }
 
+export class ModelError {
+      readonly page: Page;
+      readonly Model: Locator;
+      readonly Title: Locator;
+      readonly Description: Locator;
+      readonly OkBtn: Locator;
+
+
+      constructor(page: Page) {
+            this.page = page;
+            this.Model = page.locator('.modal_inside__WQvUw'); // container ของ modal
+            this.Title = this.Model.locator('h1');
+            this.Description = this.Model.locator('p');  
+            this.OkBtn = this.Model.locator('#direct-warning-login-confirm');
+      }
+
+      async clickOk() {
+            await this.OkBtn.click();
+      }
+
+      async getErrorMessage(): Promise<string> {
+            return await this.Description.textContent() ?? ''; 
+      /*
+            .textContent() เป็น Playwright method ที่ดึงข้อความทั้งหมดใน element
+                 - จะได้ "บัญชีหรือรหัสผ่านไม่ถูกต้อง\nโปรดลองอีกครั้ง"
+                 - จะไม่รวม tag <br> แต่จะแปลงเป็น newline \n
+                 
+            ?? '' หมายถึง ถ้าไม่ได้ข้อความ จะคืนค่าเป็น string ว่าง ไม่ทำให้เกิด error
+      */
+    }
+}
+
 export class OtpPage {
       readonly page: Page;
       readonly OtpInput: Locator;

@@ -1,13 +1,22 @@
 import { test, expect } from '@playwright/test'; 
-import { LoginPage,OtpPage,HomePage} from '../../pages/auth/login.page'; 
+import { LoginPage,OtpPage,HomePage,ModelError} from '../../pages/auth/login.page'; 
 import { loginData } from '../../data/auth/login.data'; 
 
-test.describe('Login - By Phone', () => { 
+test.describe('Login - By Phone', () => {  
+      let loginPage: LoginPage; 
+      /*
+      จองที่ : let loginPage; = ตัวแปรกลางไว้แชร์ ใช้คู่กับ beforeEach ทำให้ทุก test ใช้ object เดียวกันได้
+      ถ้า let loginPage; ตัว TypeScript infer จะไม่รู้ว่าเป็นตัวแปรประเภทอะไร
+      
+      let loginPage: LoginPage;
+            แปลว่า: “จองตัวแปรชื่อ loginPage ไว้ และมันจะต้องเก็บ object ที่เป็น LoginPage เท่านั้น”
+      */
+      test.beforeEach(async ({ page }) => { // code ที่อยากให้รันก่อนจะเริ่มทุก test
+            loginPage = new LoginPage(page); //เรียกใช้ loginPage
+            await loginPage.goto(loginData.PATH);
+      });
 
       test('Login with Phone- Both inputs are NULL', async ({ page }) => {
-            const loginPage = new LoginPage(page);
-
-            await loginPage.goto(loginData.PATH);
             await expect(loginPage.changeBtn).toHaveText('เข้าสู่ระบบด้วยอีเมล');
             await loginPage.LoginByPhone('','');
             await page.click('body'); 
@@ -16,17 +25,19 @@ test.describe('Login - By Phone', () => {
             await expect(loginPage.loginBtn).toBeDisabled();
       });
 
-      test('Login with Phone - Either is null', async ({ page }) => {
+      test('Login with Phone - Password is null', async ({ page }) => {
             const UserAlready = loginData.UserAlready;
-
-            const loginPage = new LoginPage(page);
-            await loginPage.goto(loginData.PATH);
             await expect(loginPage.changeBtn).toHaveText('เข้าสู่ระบบด้วยอีเมล');
 
             //Pass Null
             await loginPage.LoginByPhone(UserAlready.phone,'');
             await expect(loginPage.passwordError).toHaveText('โปรดระบุรหัสผ่าน');
             await expect(loginPage.loginBtn).toBeDisabled();
+      });
+
+      test('Login with Phone - Phone is null', async ({ page }) => {
+            const UserAlready = loginData.UserAlready;
+            await expect(loginPage.changeBtn).toHaveText('เข้าสู่ระบบด้วยอีเมล');
 
             //Phone Null
             await loginPage.LoginByPhone('',UserAlready.pass);
@@ -35,10 +46,8 @@ test.describe('Login - By Phone', () => {
       });
 
       test('Login with Phone - Input more than 10 digit', async ({ page }) => {
-            const loginPage = new LoginPage(page);
             const UserInvalid = loginData.UserInvalid;
 
-            await loginPage.goto(loginData.PATH);
             await expect(loginPage.changeBtn).toHaveText('เข้าสู่ระบบด้วยอีเมล');
             await loginPage.LoginByPhone(UserInvalid.phonemore,UserInvalid.pass); 
             await expect(loginPage.phoneError).toHaveText('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง');
@@ -46,10 +55,8 @@ test.describe('Login - By Phone', () => {
       });
 
       test('Login with Phone - Input less than 10 digit', async ({ page }) => {
-            const loginPage = new LoginPage(page);
             const UserInvalid = loginData.UserInvalid;
 
-            await loginPage.goto(loginData.PATH);
             await expect(loginPage.changeBtn).toHaveText('เข้าสู่ระบบด้วยอีเมล');
             await loginPage.LoginByPhone(UserInvalid.phoneless,UserInvalid.pass); 
             await expect(loginPage.phoneError).toHaveText('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง');
@@ -57,10 +64,8 @@ test.describe('Login - By Phone', () => {
       });
 
       test('Login with Phone- Input Wrong Format', async ({ page }) => {
-            const loginPage = new LoginPage(page);
             const UserInvalid = loginData.UserInvalid;
 
-            await loginPage.goto(loginData.PATH);
             await expect(loginPage.changeBtn).toHaveText('เข้าสู่ระบบด้วยอีเมล');
             await loginPage.LoginByPhone(UserInvalid.phoneInvalid,UserInvalid.pass); 
             await expect(loginPage.phoneError).toHaveText('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง');
@@ -68,22 +73,56 @@ test.describe('Login - By Phone', () => {
       });
 
       test('Login with Phone- Input with email', async ({ page }) => {
-            const loginPage = new LoginPage(page);
             const UserAlready = loginData.UserAlready;
             const UserInvalid = loginData.UserInvalid;
 
-            await loginPage.goto(loginData.PATH); 
             await expect(loginPage.changeBtn).toHaveText('เข้าสู่ระบบด้วยอีเมล');
             await loginPage.LoginByPhone(UserAlready.email,UserInvalid.pass); 
             await expect(loginPage.phoneError).toHaveText('รูปแบบเบอร์โทรศัพท์ไม่ถูกต้อง');
             await expect(loginPage.loginBtn).toBeDisabled();
       });
 
+      test('Login with Phone- Incorrect phone number', async ({ page }) => {
+            const UserAlready = loginData.UserAlready;
+            const UserNoData = loginData.UserNoData;
+
+            await loginPage.LoginByPhone(UserNoData.phone,UserAlready.pass); 
+            await expect(loginPage.loginBtn).toBeEnabled();
+            await loginPage.clickLogin();
+
+            const modelError = new ModelError(page);
+            await modelError.Model.isVisible();
+            await expect(modelError.Title).toContainText('ขออภัยในความไม่สะดวก');
+            await expect(modelError.Description).toContainText(/บัญชีหรือรหัสผ่านไม่ถูกต้อง\s*โปรดลองอีกครั้ง/);
+
+           await modelError.clickOk();
+
+            // ตรวจสอบว่า modal หายไป
+            await expect(modelError.Model).toHaveCount(0);
+      });
+
+      test('Login with Phone- Incorrect Password', async ({ page }) => {
+            const UserAlready = loginData.UserAlready;
+            const UserNoData = loginData.UserNoData;
+
+            await loginPage.LoginByPhone(UserAlready.phone,UserNoData.pass); 
+            await expect(loginPage.loginBtn).toBeEnabled();
+            await loginPage.clickLogin();
+
+            const modelError = new ModelError(page);
+            await modelError.Model.isVisible();
+            await expect(modelError.Title).toContainText('ขออภัยในความไม่สะดวก');
+            await expect(modelError.Description).toContainText(/บัญชีหรือรหัสผ่านไม่ถูกต้อง\s*โปรดลองอีกครั้ง/);
+
+           await modelError.clickOk();
+
+            // ตรวจสอบว่า modal หายไป
+            await expect(modelError.Model).toHaveCount(0);
+      });
+
       test('Login with Phone- Login success', async ({ page }) => {
-            const loginPage = new LoginPage(page);
             const UserAlready = loginData.UserAlready;
 
-            await loginPage.goto(loginData.PATH); 
             await loginPage.LoginByPhone(UserAlready.phone,UserAlready.pass); 
             await expect(loginPage.loginBtn).toBeEnabled();
             await loginPage.clickLogin();
@@ -99,13 +138,16 @@ test.describe('Login - By Phone', () => {
 
 //Email
 test.describe('Login - By Email', () => { 
-
-      test('Login with Email- Both inputs are NULL', async ({ page }) => {
-            const loginPage = new LoginPage(page);
-
+      let loginPage: LoginPage; 
+      test.beforeEach(async ({ page }) => { 
+            loginPage = new LoginPage(page); 
             await loginPage.goto(loginData.PATH);
+
             await expect(loginPage.changeBtn).toHaveText('เข้าสู่ระบบด้วยอีเมล');
             await loginPage.ChangeMethod();
+      });
+
+      test('Login with Email- Both inputs are NULL', async ({ page }) => {
             await loginPage.LoginByEmail('','');
             await page.click('body'); 
             await expect(loginPage.emailError).toHaveText('โปรดระบุอีเมล');
@@ -113,18 +155,17 @@ test.describe('Login - By Email', () => {
             await expect(loginPage.loginBtn).toBeDisabled();
       });
 
-      test('Login with Email - Either is null', async ({ page }) => {
+      test('Login with Email - password null', async ({ page }) => {
             const UserAlready = loginData.UserAlready;
-
-            const loginPage = new LoginPage(page);
-            await loginPage.goto(loginData.PATH);
-            await expect(loginPage.changeBtn).toHaveText('เข้าสู่ระบบด้วยอีเมล');
-            await loginPage.ChangeMethod();
 
             //Pass Null
             await loginPage.LoginByEmail(UserAlready.email,'');
             await expect(loginPage.passwordError).toHaveText('โปรดระบุรหัสผ่าน');
             await expect(loginPage.loginBtn).toBeDisabled();
+      });
+
+      test('Login with Email - email is null', async ({ page }) => {
+            const UserAlready = loginData.UserAlready;
 
             //email Null
             await loginPage.LoginByEmail ('',UserAlready.pass);
@@ -133,12 +174,7 @@ test.describe('Login - By Email', () => {
       });
 
       test('Login with Email- Input Wrong Format', async ({ page }) => {
-            const loginPage = new LoginPage(page);
             const UserInvalid = loginData.UserInvalid;
-
-            await loginPage.goto(loginData.PATH);
-            await expect(loginPage.changeBtn).toHaveText('เข้าสู่ระบบด้วยอีเมล');
-            await loginPage.ChangeMethod();
 
             await loginPage.LoginByEmail(UserInvalid.emailInvalid,UserInvalid.pass); 
             await expect(loginPage.emailError).toHaveText('รูปแบบอีเมลไม่ถูกต้อง');
@@ -146,26 +182,55 @@ test.describe('Login - By Email', () => {
       });
 
       test('Login with Email- Input with Phone', async ({ page }) => {
-            const loginPage = new LoginPage(page);
             const UserAlready = loginData.UserAlready;
             const UserInvalid = loginData.UserInvalid;
 
-            await loginPage.goto(loginData.PATH); 
-            await expect(loginPage.changeBtn).toHaveText('เข้าสู่ระบบด้วยอีเมล');
-            await loginPage.ChangeMethod();
 
             await loginPage.LoginByEmail(UserAlready.phone,UserInvalid.pass); 
             await expect(loginPage.emailError).toHaveText('รูปแบบอีเมลไม่ถูกต้อง');
             await expect(loginPage.loginBtn).toBeDisabled();
       });
 
-      test('Login with Phone- Login success', async ({ page }) => {
-            const loginPage = new LoginPage(page);
+      test('Login with Email- Incorrect Email', async ({ page }) => {
             const UserAlready = loginData.UserAlready;
+            const UserNoData = loginData.UserNoData;
 
-            await loginPage.goto(loginData.PATH);
-            await expect(loginPage.changeBtn).toHaveText('เข้าสู่ระบบด้วยอีเมล'); 
-            await loginPage.ChangeMethod();
+            await loginPage.LoginByEmail(UserNoData.email,UserAlready.pass); 
+            await expect(loginPage.loginBtn).toBeEnabled();
+            await loginPage.clickLogin();
+
+            const modelError = new ModelError(page);
+            await modelError.Model.isVisible();
+            await expect(modelError.Title).toContainText('ขออภัยในความไม่สะดวก');
+            await expect(modelError.Description).toContainText(/บัญชีหรือรหัสผ่านไม่ถูกต้อง\s*โปรดลองอีกครั้ง/);
+
+           await modelError.clickOk();
+
+            // ตรวจสอบว่า modal หายไป
+            await expect(modelError.Model).toHaveCount(0);
+      });
+
+      test('Login with Email- Incorrect Password', async ({ page }) => {
+            const UserAlready = loginData.UserAlready;
+            const UserNoData = loginData.UserNoData;
+
+            await loginPage.LoginByEmail(UserAlready.email,UserNoData.pass); 
+            await expect(loginPage.loginBtn).toBeEnabled();
+            await loginPage.clickLogin();
+
+            const modelError = new ModelError(page);
+            await modelError.Model.isVisible();
+            await expect(modelError.Title).toContainText('ขออภัยในความไม่สะดวก');
+            await expect(modelError.Description).toContainText(/บัญชีหรือรหัสผ่านไม่ถูกต้อง\s*โปรดลองอีกครั้ง/);
+
+           await modelError.clickOk();
+
+            // ตรวจสอบว่า modal หายไป
+            await expect(modelError.Model).toHaveCount(0);
+      });
+
+      test('Login with Phone- Login success', async ({ page }) => {
+            const UserAlready = loginData.UserAlready;
 
             await loginPage.LoginByEmail(UserAlready.email,UserAlready.pass); 
             await expect(loginPage.loginBtn).toBeEnabled();
