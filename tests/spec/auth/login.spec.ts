@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'; 
-import { LoginPage,OtpPage,HomePage} from '../pages/login.page'; 
-import { loginData } from '../test-data/Login/login.data'; 
+import { LoginPage,OtpPage,HomePage} from '../../pages/auth/login.page'; 
+import { loginData } from '../../data/auth/login.data'; 
 
 test.describe('Login - By Phone', () => { 
 

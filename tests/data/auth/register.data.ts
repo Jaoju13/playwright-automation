@@ -1,4 +1,6 @@
 import { faker } from '@faker-js/faker';
+import { getAssetPath } from '../../utils/path-helper';
+
 export const registerData = {
 
   // ======================== // 🔹 Base Config // ========================
@@ -46,7 +48,7 @@ export const registerData = {
 
   validProfileInfo(){
       const ThaiID = this.generateThaiIdCard();
-      const PathIDcard = 'test-data/Register/บัตรประชาชนปลอม.jpg'; 
+      const PathIDcard = getAssetPath('auth/id-card.jpg'); //เรียกใช้ helper
       const Title = 'นางสาว';
       const FName = 'ทดสอบ';
       const LName = 'ระบบ';
